@@ -47,16 +47,16 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Build x86_64 target in release mode
-        uses: houseabsolute/actions-rust-cross@v0
+        uses: houseabsolute/actions-rust-cross@v1
         with:
           target: ${{ matrix.x86_64-target }}
           args: '--release --locked'
 
       - name: Build aarch64 target in release mode
-        uses: houseabsolute/actions-rust-cross@v0
+        uses: houseabsolute/actions-rust-cross@v1
         with:
           target: ${{ matrix.aarch64-target }}
           args: '--release --locked'
@@ -109,23 +109,23 @@ jobs:
 
     strategy:
       matrix:
-        target: [ x86_64, x86, aarch64 ]
+        target: [ x86_64, aarch64 ]
         linux: [ auto, musllinux_1_2 ]
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
-          args: --release --out dist -i 3.8 3.9 3.10 3.11 3.12 pypy3.8 pypy3.9 pypy3.10
+          args: --release --out dist -i 3.12 3.13 3.14 pypy3.11
           sccache: 'true'
           manylinux: ${{ matrix.linux }}
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: linux-${{ matrix.linux }}-${{ matrix.target }}-wheels
           path: dist
@@ -138,21 +138,21 @@ jobs:
 
     strategy:
       matrix:
-        target: [ x64, x86 ]
+        target: [ x86_64, aarch64 ]
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
-          args: --release --out dist -i 3.8 3.9 3.10 3.11 3.12
+          args: --release --out dist -i 3.12 3.13 3.14
           sccache: 'true'
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: windows-${{ matrix.target }}-wheels
           path: dist
@@ -169,17 +169,17 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
-          args: --release --out dist -i 3.8 3.9 3.10 3.11 3.12 pypy3.8 pypy3.9 pypy3.10
+          args: --release --out dist -i 3.12 3.13 3.14 pypy3.11
           sccache: 'true'
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: macos-${{ matrix.target }}-wheels
           path: dist
@@ -192,7 +192,7 @@ jobs:
 
     steps:
       - name: Download wheels from previous jobs
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           path: wheels
           merge-multiple: true
@@ -213,7 +213,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Upload release to crates.io
         uses: katyo/publish-crates@v2

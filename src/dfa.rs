@@ -29,7 +29,7 @@ type State = NodeIndex<u32>;
 type StateLabel = String;
 type EdgeLabel = Grapheme;
 
-pub struct Dfa<'a> {
+pub(crate) struct Dfa<'a> {
     alphabet: BTreeSet<Grapheme>,
     graph: StableGraph<StateLabel, EdgeLabel>,
     initial_state: State,
@@ -66,7 +66,7 @@ impl<'a> Dfa<'a> {
         states
     }
 
-    pub(crate) fn outgoing_edges(&self, state: State) -> Edges<Grapheme, Directed> {
+    pub(crate) fn outgoing_edges(&self, state: State) -> Edges<'_, Grapheme, Directed> {
         self.graph.edges_directed(state, Direction::Outgoing)
     }
 

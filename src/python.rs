@@ -19,14 +19,14 @@ use crate::builder::{
     MISSING_TEST_CASES_MESSAGE,
 };
 use crate::config::RegExpConfig;
-use lazy_static::lazy_static;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::PyType;
 use regex::{Captures, Regex};
+use std::sync::LazyLock;
 
 #[pymodule]
-fn grex(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
+fn grex(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<RegExpBuilder>()?;
     Ok(())
 }
@@ -55,7 +55,7 @@ impl RegExpBuilder {
     /// Raises:
     ///     ValueError: if `test_cases` is empty
     #[classmethod]
-    fn from_test_cases(_cls: &PyType, test_cases: Vec<String>) -> PyResult<Self> {
+    fn from_test_cases(_cls: &Bound<PyType>, test_cases: Vec<String>) -> PyResult<Self> {
         Self::new(test_cases)
     }
 
@@ -255,12 +255,14 @@ impl RegExpBuilder {
     }
 }
 
-/// Replaces Rust Unicode escape sequences to Python Unicode escape sequences.
+/// Replaces Rust Unicode escape sequences with Python Unicode escape sequences.
 fn replace_unicode_escape_sequences(regexp: String) -> String {
-    lazy_static! {
-        static ref FOUR_CHARS_ESCAPE_SEQUENCE: Regex = Regex::new(r"\\u\{([0-9a-f]{4})\}").unwrap();
-        static ref FIVE_CHARS_ESCAPE_SEQUENCE: Regex = Regex::new(r"\\u\{([0-9a-f]{5})\}").unwrap();
-    }
+    static FOUR_CHARS_ESCAPE_SEQUENCE: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"\\u\{([0-9a-f]{4})\}").unwrap());
+
+    static FIVE_CHARS_ESCAPE_SEQUENCE: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"\\u\{([0-9a-f]{5})\}").unwrap());
+
     let mut replacement = FOUR_CHARS_ESCAPE_SEQUENCE
         .replace_all(&regexp, |caps: &Captures| format!("\\u{}", &caps[1]))
         .to_string();

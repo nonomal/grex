@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
+use crate::char_range::CharRange;
 use crate::config::RegExpConfig;
 use crate::grapheme::Grapheme;
 use crate::unicode_tables::{DECIMAL_NUMBER, WHITE_SPACE, WORD};
 use itertools::Itertools;
-use lazy_static::lazy_static;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::ops::Range;
-use unic_char_range::CharRange;
-use unic_ucd_category::GeneralCategory;
+use std::sync::LazyLock;
+use unicode_general_category::GeneralCategory as GC;
 use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct GraphemeCluster<'a> {
+pub(crate) struct GraphemeCluster<'a> {
     graphemes: Vec<Grapheme>,
     config: &'a RegExpConfig,
 }
@@ -39,8 +39,14 @@ impl<'a> GraphemeCluster<'a> {
                 .flat_map(|it| {
                     let contains_backslash = it.chars().count() == 2 && it.contains('\\');
                     let contains_combining_mark_or_unassigned_chars = it.chars().any(|c| {
-                        let category = GeneralCategory::of(c);
-                        category.is_mark() || category.is_other()
+                        let category = unicode_general_category::get_general_category(c);
+                        matches!(
+                            category,
+                            // Mark categories
+                            GC::NonspacingMark | GC::SpacingMark | GC::EnclosingMark |
+                            // Other categories
+                            GC::Control | GC::Format | GC::Surrogate | GC::PrivateUse | GC::Unassigned
+                        )
                     });
 
                     if contains_backslash || contains_combining_mark_or_unassigned_chars {
@@ -160,25 +166,22 @@ impl<'a> GraphemeCluster<'a> {
 }
 
 fn is_digit(c: char) -> bool {
-    lazy_static! {
-        static ref VALID_NUMERIC_CHARS: Vec<CharRange> = convert_chars_to_range(DECIMAL_NUMBER);
-    }
+    static VALID_NUMERIC_CHARS: LazyLock<Vec<CharRange>> =
+        LazyLock::new(|| convert_chars_to_range(DECIMAL_NUMBER));
     VALID_NUMERIC_CHARS.iter().any(|range| range.contains(c))
 }
 
 fn is_word(c: char) -> bool {
-    lazy_static! {
-        static ref VALID_ALPHANUMERIC_CHARS: Vec<CharRange> = convert_chars_to_range(WORD);
-    }
+    static VALID_ALPHANUMERIC_CHARS: LazyLock<Vec<CharRange>> =
+        LazyLock::new(|| convert_chars_to_range(WORD));
     VALID_ALPHANUMERIC_CHARS
         .iter()
         .any(|range| range.contains(c))
 }
 
 fn is_space(c: char) -> bool {
-    lazy_static! {
-        static ref VALID_SPACE_CHARS: Vec<CharRange> = convert_chars_to_range(WHITE_SPACE);
-    }
+    static VALID_SPACE_CHARS: LazyLock<Vec<CharRange>> =
+        LazyLock::new(|| convert_chars_to_range(WHITE_SPACE));
     VALID_SPACE_CHARS.iter().any(|range| range.contains(c))
 }
 
